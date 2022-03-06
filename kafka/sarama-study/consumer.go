@@ -6,6 +6,7 @@ import (
 	"log"
 	"os"
 	"os/signal"
+	"time"
 
 	"github.com/Shopify/sarama"
 )
@@ -56,12 +57,27 @@ ConsumerLoop:
 
 type exampleConsumerGroupHandler struct{}
 
-func (exampleConsumerGroupHandler) Setup(_ sarama.ConsumerGroupSession) error   { return nil }
+func (exampleConsumerGroupHandler) Setup(sess sarama.ConsumerGroupSession) error   {
+
+	for t, ps := range sess.Claims() {
+		for	_, p := range ps {
+			if p == 0 {
+				sess.ResetOffset(t, p, 2163044, "")
+			} else {
+				sess.ResetOffset(t, p, 0, "")
+			}
+			log.Printf("Reset offset on topic=%s, partition=%d\n", t, p)
+		}
+	}
+	time.Sleep(5*time.Second)
+	return nil
+}
 func (exampleConsumerGroupHandler) Cleanup(_ sarama.ConsumerGroupSession) error { return nil }
 func (h exampleConsumerGroupHandler) ConsumeClaim(sess sarama.ConsumerGroupSession, claim sarama.ConsumerGroupClaim) error {
 	log.Println("partition=", claim.Partition())
 	for msg := range claim.Messages() {
-		fmt.Printf("Message topic:%q partition:%d offset:%d\n", msg.Topic, msg.Partition, msg.Offset)
+		fmt.Printf("Message topic:%q partition:%d offset:%d InitialOffset:%d HighWaterMarkOffset:%d\n",
+			msg.Topic, msg.Partition, msg.Offset, claim.InitialOffset(), claim.HighWaterMarkOffset())
 		sess.MarkMessage(msg, "")
 	}
 	return nil
