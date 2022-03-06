@@ -10,13 +10,13 @@ import (
 
 func main() {
 
-	//traceTool()
+	traceTool()
 
 	//debugRun()
 
 	//myTest()
 
-	myTest2()
+	//myTest2()
 }
 
 func myTest2() {
